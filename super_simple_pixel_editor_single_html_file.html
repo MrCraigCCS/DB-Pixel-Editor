@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Super Simple Pixel Editor</title>
+  <style>
+    :root {
+      --ui: #111;
+      --bg: #f5f5f5;
+      --panel: #ffffff;
+      --accent: #222;
+    }
+    * { box-sizing: border-box; user-select: none; }
+    html, body { height: 100%; margin: 0; background: var(--bg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .wrap { display: grid; grid-template-columns: 80px 1fr 120px; gap: 8px; height: 100%; padding: 8px; }
+    .panel { background: var(--panel); border: 1px solid #ddd; border-radius: 8px; padding: 8px; }
+    .title { font-size: 12px; color: var(--ui); margin: 0 0 6px; text-align: center; }
+
+    /* Palette */
+    .palette { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .swatch { width: 30px; height: 30px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.2); cursor: pointer; }
+    .swatch[aria-checked="true"] { outline: 2px solid #000; outline-offset: 2px; }
+
+    /* Tools */
+    .tools { display: grid; gap: 6px; }
+    .tool { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; }
+    .tool[aria-pressed="true"] { background: #000; color: #fff; border-color: #000; }
+
+    /* Canvas area */
+    .stage { display: grid; place-items: center; }
+    canvas { background: #fff; border: 1px solid #ccc; image-rendering: pixelated; touch-action: none; }
+    .hint { text-align: center; font-size: 12px; color: #666; margin-top: 6px; }
+    .actions { margin-top: 10px; text-align: center; }
+    .actions button { padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; }
+    .actions button:hover { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Palette -->
+    <section class="panel" aria-label="Color palette">
+      <h2 class="title">Colors</h2>
+      <div id="palette" class="palette" role="radiogroup" aria-label="Color choices"></div>
+    </section>
+
+    <!-- Canvas -->
+    <section class="panel stage">
+      <div>
+        <canvas id="board" width="512" height="512" aria-label="Pixel canvas"></canvas>
+        <div class="hint">Click or tap to draw. Drag to paint. Fill bucket floods a region.</div>
+        <div class="actions">
+          <button id="clearBtn">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tools -->
+    <section class="panel" aria-label="Tools">
+      <h2 class="title">Tools</h2>
+      <div class="tools">
+        <button class="tool" id="tool-draw" aria-pressed="true" title="Draw (D)">Draw</button>
+        <button class="tool" id="tool-erase" aria-pressed="false" title="Erase (E)">Erase</button>
+        <button class="tool" id="tool-fill" aria-pressed="false" title="Fill (F)">Fill</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // --- Config ---
+    const GRID_W = 32;   // change to 16/24/48 if desired
+    const GRID_H = 32;
+    const DISPLAY_PX = 512; // canvas display size in pixels
+    const CELL = Math.floor(DISPLAY_PX / Math.max(GRID_W, GRID_H));
+
+    // 16 basic colors
+    const COLORS = [
+      '#000000', '#ffffff', '#808080', '#c0c0c0',
+      '#ff0000', '#ffa500', '#ffff00', '#00ff00',
+      '#008000', '#00ffff', '#0000ff', '#4b0082',
+      '#800080', '#ff00ff', '#8b4513', '#ff69b4'
+    ];
+
+    // --- State ---
+    const board = document.getElementById('board');
+    const ctx = board.getContext('2d');
+    board.width = GRID_W * CELL;
+    board.height = GRID_H * CELL;
+
+    // logical grid stores color hex or null for empty
+    const grid = Array.from({ length: GRID_H }, () => Array.from({ length: GRID_W }, () => null));
+
+    let currentColor = COLORS[0];
+    let currentTool = 'draw'; // 'draw' | 'erase' | 'fill'
+    let painting = false;
+
+    // --- UI: Palette ---
+    const paletteEl = document.getElementById('palette');
+    COLORS.forEach((hex, i) => {
+      const b = document.createElement('button');
+      b.className = 'swatch';
+      b.style.background = hex;
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', i === 0 ? 'true' : 'false');
+      b.title = hex;
+      b.addEventListener('click', () => selectColor(hex, b));
+      paletteEl.appendChild(b);
+    });
+
+    function selectColor(hex, buttonEl){
+      currentColor = hex;
+      [...paletteEl.children].forEach(el => el.setAttribute('aria-checked','false'));
+      buttonEl.setAttribute('aria-checked','true');
+    }
+
+    // --- UI: Tools ---
+    const toolButtons = {
+      draw: document.getElementById('tool-draw'),
+      erase: document.getElementById('tool-erase'),
+      fill: document.getElementById('tool-fill')
+    };
+
+    Object.entries(toolButtons).forEach(([tool, el]) => {
+      el.addEventListener('click', () => setTool(tool));
+    });
+
+    function setTool(t){
+      currentTool = t;
+      Object.values(toolButtons).forEach(el => el.setAttribute('aria-pressed','false'));
+      toolButtons[t].setAttribute('aria-pressed','true');
+    }
+
+    // Keyboard shortcuts: D, E, F
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'd') setTool('draw');
+      if (k === 'e') setTool('erase');
+      if (k === 'f') setTool('fill');
+    });
+
+    // --- Pointer helpers ---
+    function getCellFromEvent(evt){
+      const rect = board.getBoundingClientRect();
+      const x = Math.floor((evt.clientX - rect.left) / rect.width * board.width / CELL);
+      const y = Math.floor((evt.clientY - rect.top) / rect.height * board.height / CELL);
+      if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return null;
+      return { x, y };
+    }
+
+    function applyToolAtCell(x, y){
+      if (currentTool === 'draw') {
+        grid[y][x] = currentColor;
+      } else if (currentTool === 'erase') {
+        grid[y][x] = null;
+      } else if (currentTool === 'fill') {
+        floodFill(x, y, grid[y][x], currentColor);
+      }
+      draw();
+    }
+
+    // Flood fill on the logical grid
+    function floodFill(x, y, targetColor, replacementColor){
+      if (targetColor === replacementColor) return;
+      if (grid[y][x] !== targetColor) return;
+      const stack = [[x, y]];
+      while (stack.length){
+        const [cx, cy] = stack.pop();
+        if (cx < 0 || cx >= GRID_W || cy < 0 || cy >= GRID_H) continue;
+        if (grid[cy][cx] !== targetColor) continue;
+        grid[cy][cx] = replacementColor;
+        stack.push([cx+1, cy]);
+        stack.push([cx-1, cy]);
+        stack.push([cx, cy+1]);
+        stack.push([cx, cy-1]);
+      }
+    }
+
+    // --- Drawing ---
+    function draw(){
+      ctx.clearRect(0, 0, board.width, board.height);
+      // cells
+      for (let y = 0; y < GRID_H; y++){
+        for (let x = 0; x < GRID_W; x++){
+          const c = grid[y][x];
+          if (c){
+            ctx.fillStyle = c;
+            ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+          } else {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+          }
+        }
+      }
+      // grid lines
+      ctx.strokeStyle = '#e5e5e5';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= GRID_W; i++){
+        ctx.beginPath();
+        ctx.moveTo(i*CELL+0.5, 0);
+        ctx.lineTo(i*CELL+0.5, GRID_H*CELL);
+        ctx.stroke();
+      }
+      for (let j = 0; j <= GRID_H; j++){
+        ctx.beginPath();
+        ctx.moveTo(0, j*CELL+0.5);
+        ctx.lineTo(GRID_W*CELL, j*CELL+0.5);
+        ctx.stroke();
+      }
+    }
+
+    // Clear button
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      for (let y = 0; y < GRID_H; y++){
+        for (let x = 0; x < GRID_W; x++){
+          grid[y][x] = null;
+        }
+      }
+      draw();
+    });
+
+    // Pointer events
+    board.addEventListener('pointerdown', (e) => {
+      const cell = getCellFromEvent(e);
+      if (!cell) return;
+      painting = true;
+      if (currentTool === 'fill') {
+        applyToolAtCell(cell.x, cell.y);
+      } else {
+        applyToolAtCell(cell.x, cell.y);
+      }
+      board.setPointerCapture(e.pointerId);
+    });
+
+    board.addEventListener('pointermove', (e) => {
+      if (!painting) return;
+      if (currentTool === 'fill') return; // fill is one-shot
+      const cell = getCellFromEvent(e);
+      if (!cell) return;
+      applyToolAtCell(cell.x, cell.y);
+    });
+
+    function stopPaint(e){ painting = false; try { board.releasePointerCapture(e.pointerId); } catch(_){} }
+    board.addEventListener('pointerup', stopPaint);
+    board.addEventListener('pointercancel', stopPaint);
+    board.addEventListener('pointerleave', stopPaint);
+
+    // initial paint
+    draw();
+  </script>
+</body>
+</html>

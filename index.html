@@ -292,6 +292,8 @@
                     <div class="brush-size-display" id="brushSizeDisplay">Size: 1x1</div>
                 </div>
             </div>
+            
+
         </div>
 
         <!-- Canvas -->
@@ -313,15 +315,14 @@
         </div>
 
         <!-- Color Palette -->
-        <div>
-            <div class="color-palette" id="palette"></div>
-            
-            <!-- Advanced Color Picker -->
-            <div class="advanced-controls" id="colorControls">
-                <div class="advanced-label">Custom Color</div>
-                <input type="color" class="color-picker-input" id="customColorPicker" value="#FF0000">
-                <button class="confirm-color-button" id="confirmColor">Use This Color</button>
-            </div>
+        <div class="color-palette" id="palette">
+        </div>
+        
+        <!-- Advanced Color Picker -->
+        <div class="advanced-controls" id="colorControls" style="background: white; border-radius: 15px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); margin-top: 20px; border: 2px dashed #4CAF50;">
+            <div class="advanced-label">Custom Color</div>
+            <input type="color" class="color-picker-input" id="customColorPicker" value="#FF0000">
+            <button class="confirm-color-button" id="confirmColor">Use This Color</button>
         </div>
     </div>
 
@@ -392,7 +393,11 @@
 
         // Flood fill algorithm
         function floodFill(startIndex, targetColor, fillColor) {
-            if (targetColor === fillColor) return;
+            // Convert colors to consistent format for comparison
+            const normalizedTarget = normalizeColor(targetColor);
+            const normalizedFill = normalizeColor(fillColor);
+            
+            if (normalizedTarget === normalizedFill) return;
             
             const pixels = document.querySelectorAll('.pixel');
             const visited = new Set();
@@ -400,15 +405,15 @@
             
             while (stack.length > 0) {
                 const index = stack.pop();
-                if (visited.has(index)) continue;
+                if (visited.has(index) || index < 0 || index >= pixels.length) continue;
                 
                 const pixel = pixels[index];
-                const pixelColor = pixel.style.backgroundColor || 'rgb(255, 255, 255)';
+                const currentPixelColor = pixel.style.backgroundColor || 'white';
+                const normalizedCurrent = normalizeColor(currentPixelColor);
                 
-                if (pixelColor !== targetColor) continue;
+                if (normalizedCurrent !== normalizedTarget) continue;
                 
                 visited.add(index);
-                pixel.classList.remove('preview');
                 pixel.style.backgroundColor = fillColor;
                 pixel.dataset.originalColor = fillColor;
                 
@@ -425,6 +430,13 @@
                 // Right
                 if (col < canvasWidth - 1) stack.push(index + 1);
             }
+        }
+
+        // Normalize color values for consistent comparison
+        function normalizeColor(color) {
+            if (!color || color === 'white' || color === '') return 'white';
+            if (color.startsWith('#')) return hexToRgb(color);
+            return color;
         }
 
         // Convert hex to rgb for comparison
@@ -445,9 +457,8 @@
             } else if (currentTool === 'erase') {
                 drawWithBrush(index, 'white');
             } else if (currentTool === 'fill') {
-                const targetColor = pixel.style.backgroundColor || 'rgb(255, 255, 255)';
-                const fillColor = hexToRgb(currentColor);
-                floodFill(index, targetColor, fillColor);
+                const targetColor = pixel.style.backgroundColor || 'white';
+                floodFill(index, targetColor, currentColor);
             }
         }
 
@@ -492,12 +503,7 @@
             clearPreview();
             
             if (currentTool === 'fill') {
-                // For fill tool, just preview the single pixel
-                const pixel = document.querySelector(`[data-index="${centerIndex}"]`);
-                if (pixel) {
-                    pixel.classList.add('preview');
-                    pixel.style.backgroundColor = currentColor;
-                }
+                // No preview for fill tool
                 return;
             }
             
@@ -678,5 +684,5 @@
             });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98765a89c1332811',t:'MTc1OTI2MjkyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98766d9ce6ac2811',t:'MTc1OTI2MzcwMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

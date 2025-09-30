@@ -18,6 +18,7 @@
             justify-content: center;
             gap: 20px;
             overflow: hidden;
+            padding-top: 100px;
         }
 
         .container {
@@ -95,6 +96,13 @@
         .pixel:hover {
             transform: scale(1.1);
             z-index: 1;
+            position: relative;
+        }
+
+        .pixel.preview {
+            opacity: 0.6;
+            transform: scale(1.05);
+            z-index: 2;
             position: relative;
         }
 
@@ -305,13 +313,15 @@
         </div>
 
         <!-- Color Palette -->
-        <div class="color-palette" id="palette"></div>
-        
-        <!-- Advanced Color Picker -->
-        <div class="advanced-controls" id="colorControls">
-            <div class="advanced-label">Custom Color</div>
-            <input type="color" class="color-picker-input" id="customColorPicker" value="#FF0000">
-            <button class="confirm-color-button" id="confirmColor">Use This Color</button>
+        <div>
+            <div class="color-palette" id="palette"></div>
+            
+            <!-- Advanced Color Picker -->
+            <div class="advanced-controls" id="colorControls">
+                <div class="advanced-label">Custom Color</div>
+                <input type="color" class="color-picker-input" id="customColorPicker" value="#FF0000">
+                <button class="confirm-color-button" id="confirmColor">Use This Color</button>
+            </div>
         </div>
     </div>
 
@@ -398,7 +408,9 @@
                 if (pixelColor !== targetColor) continue;
                 
                 visited.add(index);
+                pixel.classList.remove('preview');
                 pixel.style.backgroundColor = fillColor;
+                pixel.dataset.originalColor = fillColor;
                 
                 // Add adjacent pixels
                 const row = Math.floor(index / canvasWidth);
@@ -452,7 +464,9 @@
                     if (row >= 0 && row < canvasHeight && col >= 0 && col < canvasWidth) {
                         const pixelIndex = row * canvasWidth + col;
                         if (pixels[pixelIndex]) {
+                            pixels[pixelIndex].classList.remove('preview');
                             pixels[pixelIndex].style.backgroundColor = color;
+                            pixels[pixelIndex].dataset.originalColor = color;
                         }
                     }
                 }
@@ -466,6 +480,62 @@
             } else if (isDrawing && currentTool === 'erase') {
                 const index = parseInt(e.target.dataset.index);
                 drawWithBrush(index, 'white');
+            } else if (!isDrawing) {
+                // Show preview
+                const index = parseInt(e.target.dataset.index);
+                showPreview(index);
+            }
+        }
+
+        // Show preview of what will be drawn
+        function showPreview(centerIndex) {
+            clearPreview();
+            
+            if (currentTool === 'fill') {
+                // For fill tool, just preview the single pixel
+                const pixel = document.querySelector(`[data-index="${centerIndex}"]`);
+                if (pixel) {
+                    pixel.classList.add('preview');
+                    pixel.style.backgroundColor = currentColor;
+                }
+                return;
+            }
+            
+            // For draw and erase tools, show brush area
+            const pixels = document.querySelectorAll('.pixel');
+            const centerRow = Math.floor(centerIndex / canvasWidth);
+            const centerCol = centerIndex % canvasWidth;
+            
+            const radius = Math.floor(brushSize / 2);
+            const previewColor = currentTool === 'erase' ? 'white' : currentColor;
+            
+            for (let row = centerRow - radius; row <= centerRow + radius; row++) {
+                for (let col = centerCol - radius; col <= centerCol + radius; col++) {
+                    if (row >= 0 && row < canvasHeight && col >= 0 && col < canvasWidth) {
+                        const pixelIndex = row * canvasWidth + col;
+                        if (pixels[pixelIndex]) {
+                            pixels[pixelIndex].classList.add('preview');
+                            pixels[pixelIndex].style.backgroundColor = previewColor;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Clear preview effects
+        function clearPreview() {
+            document.querySelectorAll('.pixel.preview').forEach(pixel => {
+                pixel.classList.remove('preview');
+                // Restore original color or white if no color was set
+                const originalColor = pixel.dataset.originalColor || 'white';
+                pixel.style.backgroundColor = originalColor;
+            });
+        }
+
+        // Store original colors when pixels are painted
+        function storeOriginalColor(pixel) {
+            if (!pixel.dataset.originalColor) {
+                pixel.dataset.originalColor = pixel.style.backgroundColor || 'white';
             }
         }
 
@@ -534,6 +604,10 @@
                     handlePixelMouseOver(e);
                 }
             });
+
+            document.getElementById('canvas').addEventListener('mouseleave', function() {
+                clearPreview();
+            });
             
             document.addEventListener('mouseup', function() {
                 isDrawing = false;
@@ -563,6 +637,12 @@
             document.getElementById('brushSize').addEventListener('input', function(e) {
                 brushSize = parseInt(e.target.value);
                 document.getElementById('brushSizeDisplay').textContent = `Size: ${brushSize}x${brushSize}`;
+                // Update preview if mouse is over canvas
+                const hoveredPixel = document.querySelector('.pixel:hover');
+                if (hoveredPixel) {
+                    const index = parseInt(hoveredPixel.dataset.index);
+                    showPreview(index);
+                }
             });
 
             document.getElementById('confirmColor').addEventListener('click', function() {
@@ -598,5 +678,5 @@
             });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98763f1bd66f7577',t:'MTc1OTI2MTc5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98765a89c1332811',t:'MTc1OTI2MjkyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

@@ -11,7 +11,7 @@
             padding: 0;
             font-family: 'Comic Sans MS', cursive, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: calc(100vh - 60px);
+            height: 100vh;
             width: 100vw;
             display: flex;
             align-items: center;
@@ -164,10 +164,27 @@
 
         .color-picker-input {
             width: 100%;
-            height: 40px;
+            height: 60px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .confirm-color-button {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .confirm-color-button:hover {
+            background: #45a049;
         }
 
         .brush-size-container {
@@ -294,6 +311,7 @@
         <div class="advanced-controls" id="colorControls">
             <div class="advanced-label">Custom Color</div>
             <input type="color" class="color-picker-input" id="customColorPicker" value="#FF0000">
+            <button class="confirm-color-button" id="confirmColor">Use This Color</button>
         </div>
     </div>
 
@@ -547,8 +565,9 @@
                 document.getElementById('brushSizeDisplay').textContent = `Size: ${brushSize}x${brushSize}`;
             });
 
-            document.getElementById('customColorPicker').addEventListener('change', function(e) {
-                currentColor = e.target.value;
+            document.getElementById('confirmColor').addEventListener('click', function() {
+                const pickerColor = document.getElementById('customColorPicker').value;
+                currentColor = pickerColor;
                 // Remove active class from palette swatches
                 document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
             });
@@ -579,5 +598,5 @@
             });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'987636ec1338df15',t:'MTc1OTI2MTQ2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98763f1bd66f7577',t:'MTc1OTI2MTc5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

@@ -32,6 +32,14 @@
             padding: 10px;
             max-width: 100vw;
             max-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .container.advanced-mode {
+            gap: 10px;
+            padding: 5px;
+            transform: scale(0.85);
+            transform-origin: center;
         }
 
         .color-section {
@@ -49,6 +57,13 @@
             flex-direction: column;
             gap: 15px;
             min-width: 120px;
+            transition: all 0.3s ease;
+        }
+
+        .container.advanced-mode .toolbox {
+            padding: 12px;
+            gap: 8px;
+            min-width: 100px;
         }
 
         .tool-button {
@@ -63,6 +78,12 @@
             color: #333;
             transition: all 0.2s;
             user-select: none;
+        }
+
+        .container.advanced-mode .tool-button {
+            padding: 8px;
+            font-size: 18px;
+            border-width: 2px;
         }
 
         .tool-button:hover {
@@ -81,6 +102,11 @@
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .container.advanced-mode .canvas-container {
+            padding: 12px;
         }
 
         .pixel-canvas {
@@ -96,6 +122,12 @@
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        .container.advanced-mode .pixel-canvas {
+            padding: 6px;
+            gap: 0.5px;
         }
 
         .pixel {
@@ -130,6 +162,14 @@
             gap: 8px;
             min-width: 200px;
             width: 160px;
+            transition: all 0.3s ease;
+        }
+
+        .container.advanced-mode .color-palette {
+            padding: 12px;
+            gap: 4px;
+            min-width: 140px;
+            width: 120px;
         }
 
         .color-swatch {
@@ -139,6 +179,12 @@
             cursor: pointer;
             border: 2px solid #ddd;
             transition: all 0.2s;
+        }
+
+        .container.advanced-mode .color-swatch {
+            width: 22px;
+            height: 22px;
+            border-width: 1px;
         }
 
         .color-swatch:hover {
@@ -170,6 +216,12 @@
             background: #f8f9fa;
             border-radius: 10px;
             border: 2px dashed #4CAF50;
+            transition: all 0.3s ease;
+        }
+
+        .container.advanced-mode .advanced-controls {
+            margin-top: 8px;
+            padding: 10px;
         }
 
         .advanced-controls.active {
@@ -289,7 +341,7 @@
                 ✏️<br>Draw
             </div>
             <div class="tool-button" data-tool="erase">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXLmIAwiWURCEDRf95TpP3PH3psRlzxQN9JQ&s" alt="Pink eraser" style="width: 24px; height: 24px;" onerror="this.src=''; this.alt='Eraser icon failed to load'; this.style.display='none';"><br>Erase
+                <img src="https://www.canva.com/design/DAG0fLMtcvU/F-CkYTCnlWgUwhSMGyAxjA/edit?ui=e30" alt="Pink eraser" style="width: 24px; height: 24px;" onerror="this.src=''; this.alt='Eraser icon failed to load'; this.style.display='none';"><br>Erase
             </div>
             <div class="tool-button" data-tool="fill">
                 🪣<br>Fill
@@ -569,17 +621,20 @@
             const brushControls = document.getElementById('brushControls');
             const canvasControls = document.getElementById('canvasControls');
             const colorControls = document.getElementById('colorControls');
+            const container = document.querySelector('.container');
             
             if (advancedMode) {
                 indicator.classList.add('active');
                 brushControls.classList.add('active');
                 canvasControls.classList.add('active');
                 colorControls.classList.add('active');
+                container.classList.add('advanced-mode');
             } else {
                 indicator.classList.remove('active');
                 brushControls.classList.remove('active');
                 canvasControls.classList.remove('active');
                 colorControls.classList.remove('active');
+                container.classList.remove('advanced-mode');
             }
         }
 
@@ -749,5 +804,5 @@
             });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'987689e5848e6817',t:'MTc1OTI2NDg2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9876927fb2b76817',t:'MTc1OTI2NTIxMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

@@ -11,7 +11,7 @@
             padding: 0;
             font-family: 'Comic Sans MS', cursive, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
+            height: calc(100vh - 60px);
             width: 100vw;
             display: flex;
             align-items: center;
@@ -140,10 +140,108 @@
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
+
+        .advanced-controls {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px dashed #4CAF50;
+        }
+
+        .advanced-controls.active {
+            display: block;
+        }
+
+        .advanced-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .color-picker-input {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .brush-size-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .brush-size-slider {
+            width: 100%;
+        }
+
+        .brush-size-display {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .canvas-resize-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .size-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .size-input {
+            width: 60px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .resize-button {
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .resize-button:hover {
+            background: #45a049;
+        }
+
+        .advanced-mode-indicator {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #4CAF50;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .advanced-mode-indicator.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="title">🎨 Mr. Craig's Pixel Editor</div>
+    <div class="advanced-mode-indicator" id="advancedIndicator">🔧 ADVANCED MODE ACTIVATED</div>
     
     <div class="container">
         <!-- Toolbox -->
@@ -160,15 +258,43 @@
             <div class="tool-button" data-tool="clear">
                 🗑️<br>Clear
             </div>
+            
+            <!-- Advanced Brush Size Controls -->
+            <div class="advanced-controls" id="brushControls">
+                <div class="advanced-label">Brush Size</div>
+                <div class="brush-size-container">
+                    <input type="range" class="brush-size-slider" id="brushSize" min="1" max="5" value="1">
+                    <div class="brush-size-display" id="brushSizeDisplay">Size: 1x1</div>
+                </div>
+            </div>
         </div>
 
         <!-- Canvas -->
         <div class="canvas-container">
             <div class="pixel-canvas" id="canvas"></div>
+            
+            <!-- Advanced Canvas Resize Controls -->
+            <div class="advanced-controls" id="canvasControls">
+                <div class="advanced-label">Canvas Size</div>
+                <div class="canvas-resize-container">
+                    <div class="size-inputs">
+                        <input type="number" class="size-input" id="canvasWidth" value="20" min="5" max="50">
+                        <span>×</span>
+                        <input type="number" class="size-input" id="canvasHeight" value="20" min="5" max="50">
+                    </div>
+                    <button class="resize-button" id="resizeCanvas">Resize Canvas</button>
+                </div>
+            </div>
         </div>
 
         <!-- Color Palette -->
         <div class="color-palette" id="palette"></div>
+        
+        <!-- Advanced Color Picker -->
+        <div class="advanced-controls" id="colorControls">
+            <div class="advanced-label">Custom Color</div>
+            <input type="color" class="color-picker-input" id="customColorPicker" value="#FF0000">
+        </div>
     </div>
 
     <script>
@@ -176,6 +302,11 @@
         let currentTool = 'draw';
         let currentColor = '#FF0000';
         let isDrawing = false;
+        let advancedMode = false;
+        let brushSize = 1;
+        let canvasWidth = 20;
+        let canvasHeight = 20;
+        let keysPressed = new Set();
 
         // Color palette - 44 colors organized by hue and shade
         const colors = [
@@ -206,7 +337,11 @@
         // Create canvas pixels
         function createCanvas() {
             const canvas = document.getElementById('canvas');
-            for (let i = 0; i < 400; i++) { // 20x20 = 400 pixels
+            canvas.innerHTML = ''; // Clear existing pixels
+            canvas.style.gridTemplateColumns = `repeat(${canvasWidth}, 20px)`;
+            canvas.style.gridTemplateRows = `repeat(${canvasHeight}, 20px)`;
+            
+            for (let i = 0; i < canvasWidth * canvasHeight; i++) {
                 const pixel = document.createElement('div');
                 pixel.className = 'pixel';
                 pixel.dataset.index = i;
@@ -248,17 +383,17 @@
                 pixel.style.backgroundColor = fillColor;
                 
                 // Add adjacent pixels
-                const row = Math.floor(index / 20);
-                const col = index % 20;
+                const row = Math.floor(index / canvasWidth);
+                const col = index % canvasWidth;
                 
                 // Up
-                if (row > 0) stack.push(index - 20);
+                if (row > 0) stack.push(index - canvasWidth);
                 // Down
-                if (row < 19) stack.push(index + 20);
+                if (row < canvasHeight - 1) stack.push(index + canvasWidth);
                 // Left
                 if (col > 0) stack.push(index - 1);
                 // Right
-                if (col < 19) stack.push(index + 1);
+                if (col < canvasWidth - 1) stack.push(index + 1);
             }
         }
 
@@ -276,9 +411,9 @@
             const index = parseInt(pixel.dataset.index);
             
             if (currentTool === 'draw') {
-                pixel.style.backgroundColor = currentColor;
+                drawWithBrush(index, currentColor);
             } else if (currentTool === 'erase') {
-                pixel.style.backgroundColor = 'white';
+                drawWithBrush(index, 'white');
             } else if (currentTool === 'fill') {
                 const targetColor = pixel.style.backgroundColor || 'rgb(255, 255, 255)';
                 const fillColor = hexToRgb(currentColor);
@@ -286,11 +421,54 @@
             }
         }
 
+        // Draw with brush size
+        function drawWithBrush(centerIndex, color) {
+            const pixels = document.querySelectorAll('.pixel');
+            const centerRow = Math.floor(centerIndex / canvasWidth);
+            const centerCol = centerIndex % canvasWidth;
+            
+            const radius = Math.floor(brushSize / 2);
+            
+            for (let row = centerRow - radius; row <= centerRow + radius; row++) {
+                for (let col = centerCol - radius; col <= centerCol + radius; col++) {
+                    if (row >= 0 && row < canvasHeight && col >= 0 && col < canvasWidth) {
+                        const pixelIndex = row * canvasWidth + col;
+                        if (pixels[pixelIndex]) {
+                            pixels[pixelIndex].style.backgroundColor = color;
+                        }
+                    }
+                }
+            }
+        }
+
         function handlePixelMouseOver(e) {
             if (isDrawing && currentTool === 'draw') {
-                e.target.style.backgroundColor = currentColor;
+                const index = parseInt(e.target.dataset.index);
+                drawWithBrush(index, currentColor);
             } else if (isDrawing && currentTool === 'erase') {
-                e.target.style.backgroundColor = 'white';
+                const index = parseInt(e.target.dataset.index);
+                drawWithBrush(index, 'white');
+            }
+        }
+
+        // Toggle advanced mode
+        function toggleAdvancedMode() {
+            advancedMode = !advancedMode;
+            const indicator = document.getElementById('advancedIndicator');
+            const brushControls = document.getElementById('brushControls');
+            const canvasControls = document.getElementById('canvasControls');
+            const colorControls = document.getElementById('colorControls');
+            
+            if (advancedMode) {
+                indicator.classList.add('active');
+                brushControls.classList.add('active');
+                canvasControls.classList.add('active');
+                colorControls.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+                brushControls.classList.remove('active');
+                canvasControls.classList.remove('active');
+                colorControls.classList.remove('active');
             }
         }
 
@@ -347,7 +525,59 @@
             document.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
             });
+
+            // Keyboard event listeners for secret combination
+            document.addEventListener('keydown', function(e) {
+                keysPressed.add(e.key.toLowerCase());
+                
+                // Check for Shift + D + B combination
+                if (keysPressed.has('shift') && keysPressed.has('d') && keysPressed.has('b')) {
+                    toggleAdvancedMode();
+                    keysPressed.clear(); // Clear to prevent repeated activation
+                }
+            });
+
+            document.addEventListener('keyup', function(e) {
+                keysPressed.delete(e.key.toLowerCase());
+            });
+
+            // Advanced controls event listeners
+            document.getElementById('brushSize').addEventListener('input', function(e) {
+                brushSize = parseInt(e.target.value);
+                document.getElementById('brushSizeDisplay').textContent = `Size: ${brushSize}x${brushSize}`;
+            });
+
+            document.getElementById('customColorPicker').addEventListener('change', function(e) {
+                currentColor = e.target.value;
+                // Remove active class from palette swatches
+                document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            });
+
+            document.getElementById('resizeCanvas').addEventListener('click', function() {
+                const newWidth = parseInt(document.getElementById('canvasWidth').value);
+                const newHeight = parseInt(document.getElementById('canvasHeight').value);
+                
+                if (newWidth >= 5 && newWidth <= 50 && newHeight >= 5 && newHeight <= 50) {
+                    canvasWidth = newWidth;
+                    canvasHeight = newHeight;
+                    createCanvas();
+                    
+                    // Re-attach canvas event listeners
+                    document.getElementById('canvas').addEventListener('mousedown', function(e) {
+                        if (e.target.classList.contains('pixel')) {
+                            isDrawing = true;
+                            handlePixelClick(e);
+                        }
+                    });
+                    
+                    document.getElementById('canvas').addEventListener('mouseover', function(e) {
+                        if (e.target.classList.contains('pixel')) {
+                            handlePixelMouseOver(e);
+                        }
+                    });
+                }
+            });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98760f2654e67577',t:'MTc1OTI1OTgzMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'987636ec1338df15',t:'MTc1OTI2MTQ2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
